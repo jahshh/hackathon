@@ -1,0 +1,43 @@
+# Grafana dashboard for RESPONSE platform metrics (no app changes needed:
+# CPU, memory, pod restarts, and deployment rollout status from kube-state-metrics
+# and cAdvisor). Import via the Grafana operator (Dashboard CR) or the Grafana UI.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: response-dashboard
+  labels:
+    app: response
+    grafana_dashboard: "1"
+data:
+  response-dashboard.json: |
+    {
+      "title": "RESPONSE Command Center",
+      "tags": ["response", "openshift"],
+      "panels": [
+        {
+          "title": "CPU usage (cores)",
+          "type": "timeseries",
+          "targets": [{ "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"response-.*\"}[5m]))" }]
+        },
+        {
+          "title": "Memory working set (bytes)",
+          "type": "timeseries",
+          "targets": [{ "expr": "sum(container_memory_working_set_bytes{pod=~\"response-.*\"})" }]
+        },
+        {
+          "title": "Ready replicas",
+          "type": "stat",
+          "targets": [{ "expr": "sum(kube_deployment_status_replicas_ready{deployment=\"response\"})" }]
+        },
+        {
+          "title": "Container restarts (1h)",
+          "type": "stat",
+          "targets": [{ "expr": "sum(increase(kube_pod_container_status_restarts_total{pod=~\"response-.*\"}[1h]))" }]
+        },
+        {
+          "title": "HTTP 5xx at route (5m rate)",
+          "type": "timeseries",
+          "targets": [{ "expr": "sum(rate(haproxy_backend_http_responses_total{backend=\"response-jahsh-dev\",code=\"5xx\"}[5m]))" }]
+        }
+      ]
+    }

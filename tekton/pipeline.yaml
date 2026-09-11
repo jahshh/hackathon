@@ -1,0 +1,100 @@
+# Tekton pipeline: git clone -> unit tests -> buildah image build -> deploy to OpenShift.
+# Requires OpenShift Pipelines operator. Cluster tasks used: git-clone, buildah, openshift-client.
+# Create the image pull/push secret and workspace PVC before first run (see README.md).
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: response-build-deploy
+  labels:
+    app: response
+spec:
+  params:
+    - name: repo-url
+      type: string
+      description: Git URL of the RESPONSE repository
+    - name: revision
+      type: string
+      default: main
+    - name: image
+      type: string
+      default: image-registry.openshift-image-registry.svc:5000/jahsh-dev/response:latest
+  workspaces:
+    - name: source
+  tasks:
+    - name: clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.revision)
+      workspaces:
+        - name: output
+          workspace: source
+    - name: unit-test
+      runAfter: [clone]
+      taskSpec:
+        workspaces:
+          - name: source
+        steps:
+          - name: test
+            image: docker.io/library/node:20-alpine
+            workingDir: $(workspaces.source.path)/response-command-center
+            script: |
+              #!/bin/sh
+              set -e
+              npm ci --ignore-scripts
+              npm test
+      workspaces:
+        - name: source
+          workspace: source
+    - name: build-image
+      runAfter: [unit-test]
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      params:
+        - name: IMAGE
+          value: $(params.image)
+      workspaces:
+        - name: source
+          workspace: source
+    - name: deploy
+      runAfter: [build-image]
+      taskRef:
+        name: openshift-client
+        kind: ClusterTask
+      params:
+        - name: SCRIPT
+          value: |
+            oc apply -f k8s/rbac.yaml -f k8s/service.yaml -f k8s/route.yaml
+            oc apply -f k8s/deployment.yaml
+            oc rollout status deploy/response --timeout=300s
+            oc apply -f k8s/hpa.yaml -f k8s/networkpolicy.yaml
+      workspaces:
+        - name: manifest-dir
+          workspace: source
+          subPath: response-command-center
+---
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: response-build-deploy-run
+  labels:
+    app: response
+spec:
+  pipelineRef:
+    name: response-build-deploy
+  params:
+    - name: repo-url
+      value: TO_BE_SET
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 2Gi

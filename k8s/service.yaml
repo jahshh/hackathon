@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: response
+  labels:
+    app: response
+spec:
+  selector:
+    app: response
+  ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP

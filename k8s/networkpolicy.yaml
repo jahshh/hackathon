@@ -1,0 +1,36 @@
+# Default-deny with explicit allows:
+#  - ingress to the app only from the OpenShift router + same-namespace health checks
+#  - egress only to cluster DNS (the app is a static build; it makes no
+#    outbound connections at runtime)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: response
+  labels:
+    app: response
+spec:
+  podSelector:
+    matchLabels:
+      app: response
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              policy-group.network.openshift.io/ingress: ""
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: openshift-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

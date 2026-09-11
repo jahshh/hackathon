@@ -1,0 +1,41 @@
+# Serverless (scale-to-zero) variant of RESPONSE.
+# Requires the OpenShift Serverless operator (Knative Serving).
+# Creates a revision that scales to zero when idle and autoscales on traffic:
+#   oc apply -f k8s/serverless/knative-service.yaml
+#   oc get ksvc response-serverless
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: response-serverless
+  labels:
+    app: response
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "5"
+        autoscaling.knative.dev/target: "50"
+    spec:
+      containers:
+        - image: image-registry.openshift-image-registry.svc:5000/jahsh-dev/response:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+  traffic:
+    - latestRevision: true
+      percent: 100
