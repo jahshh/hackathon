@@ -24,7 +24,7 @@ spec:
     - name: clone
       taskRef:
         name: git-clone
-        kind: ClusterTask
+        kind: Task
       params:
         - name: url
           value: $(params.repo-url)
@@ -54,7 +54,7 @@ spec:
       runAfter: [unit-test]
       taskRef:
         name: buildah
-        kind: ClusterTask
+        kind: Task
       params:
         - name: IMAGE
           value: $(params.image)
@@ -65,7 +65,7 @@ spec:
       runAfter: [build-image]
       taskRef:
         name: openshift-client
-        kind: ClusterTask
+        kind: Task
       params:
         - name: SCRIPT
           value: |

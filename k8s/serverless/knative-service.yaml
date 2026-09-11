@@ -36,6 +36,14 @@ spec:
             httpGet:
               path: /
               port: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
   traffic:
     - latestRevision: true
       percent: 100
