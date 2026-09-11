@@ -60,7 +60,7 @@ What is where:
 | Scale-to-zero serverless variant | `k8s/serverless/knative-service.yaml` (needs Serverless operator) |
 | Grafana dashboard (platform metrics, no app changes) | `k8s/monitoring/dashboard.yaml` |
 | GitHub Actions CI (test, build, GHCR image) | `.github/workflows/ci.yaml` |
-| OpenShift Pipelines CD | `tekton/pipeline.yaml` (needs Pipelines operator) |
+| OpenShift Pipelines CD | `tekton/pipeline.yaml` (needs Pipelines operator; on Dev Sandbox the stock git-clone task pod cannot resolve external git hosts, so use binary builds there: `oc start-build response --from-dir=. --follow`) |
 
 Notes:
 
