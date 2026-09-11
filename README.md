@@ -47,6 +47,26 @@ oc rollout status deploy/response --timeout=300s
 oc apply -f k8s/hpa.yaml -f k8s/networkpolicy.yaml
 ```
 
+## Continuous delivery from Git (working on Dev Sandbox)
+
+The Tekton git-clone task pod cannot resolve external git hosts on this Sandbox,
+so image builds run from a git-source BuildConfig instead (builder pods have
+working DNS; verified with build `response-git-1` from commit `de27e63`):
+
+```sh
+# One-time setup (already applied):
+oc new-build --strategy=docker --code=https://github.com/jahshh/hackathon.git \
+  --context-dir=. --to=response-git --name=response-git -l app=response
+oc set triggers bc/response-git --from-github
+```
+
+Then register the webhook in GitHub: repo Settings → Webhooks → Add webhook →
+Payload URL `https://api.rm2.thpm.p1.openshiftapps.com:6443/apis/build.openshift.io/v1/namespaces/jahsh-dev/buildconfigs/response-git/webhooks/<secret>/github`,
+Content type `application/json`, event `Just the push event`. Every push to
+`main` then rebuilds `response-git:latest`; roll out with
+`oc rollout restart deploy/response` (or re-apply `k8s/deployment.yaml` after
+bumping the image digest).
+
 What is where:
 
 | Concern | Manifest |

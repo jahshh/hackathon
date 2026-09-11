@@ -24,7 +24,7 @@ spec:
       serviceAccountName: response
       containers:
         - name: web
-          image: image-registry.openshift-image-registry.svc:5000/jahsh-dev/response:latest
+          image: image-registry.openshift-image-registry.svc:5000/jahsh-dev/response-git:latest
           imagePullPolicy: Always
           ports:
             - name: http
