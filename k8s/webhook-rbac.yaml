@@ -1,0 +1,27 @@
+# Allows OpenShift's webhook endpoint (which arrives as unauthenticated)
+# to trigger builds on response-git only. No other access granted.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: webhook-trigger
+  labels:
+    app: response
+rules:
+  - apiGroups: ["build.openshift.io"]
+    resources: ["buildconfigs/webhooks"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: webhook-trigger
+  labels:
+    app: response
+subjects:
+  - kind: Group
+    apiGroup: rbac.authorization.k8s.io
+    name: system:unauthenticated
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: webhook-trigger
